@@ -1,4 +1,5 @@
 import ProcessImage from "./components/processImage";
+import ReconstructImage from "./components/reconstructImage";
 
 export default function App() {
     return (
@@ -6,6 +7,8 @@ export default function App() {
             <h1>SVD Image Compression</h1>
 
             <ProcessImage />
+
+            <ReconstructImage />
 
         </div>
     );

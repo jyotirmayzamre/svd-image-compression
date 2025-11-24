@@ -49,9 +49,9 @@ function extractMatrices(
 
 async function computeSVDWithWorkers(matrices: Record<string, number[]>, width: number, height: number): Promise<{channel: string, svd: Svd}[]> {
     const workers: Record<string, Worker> = {
-        "red": new Worker(new URL("../workers/worker.ts", import.meta.url), { type: "module" }),
-        "green": new Worker(new URL("../workers/worker.ts", import.meta.url), { type: "module" }),
-        "blue": new Worker(new URL("../workers/worker.ts", import.meta.url), { type: "module" })
+        "red": new Worker(new URL("../workers/svdWorker.ts", import.meta.url), { type: "module" }),
+        "green": new Worker(new URL("../workers/svdWorker.ts", import.meta.url), { type: "module" }),
+        "blue": new Worker(new URL("../workers/svdWorker.ts", import.meta.url), { type: "module" })
     };
 
     const promises = (["red", "green", "blue"].map((channel) => {
