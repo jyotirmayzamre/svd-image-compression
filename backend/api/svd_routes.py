@@ -9,6 +9,7 @@ router = APIRouter()
 class MatrixPayload(BaseModel):
     width: int
     height: int
+    data: list[list[float]]
     channels: dict
 
 
@@ -16,14 +17,12 @@ class MatrixPayload(BaseModel):
 def compute_svd_api(payload: MatrixPayload):
     results = {}
 
-    for ch_name, flat_list in payload.channels.items():
-        matrix = np.array(flat_list, dtype=float).reshape(payload.height, payload.width)
-        U, S, Vt = randomized_svd(matrix, seed=42, dtype=np.float32)
+    matrix = np.array(payload.data, dtype=float).reshape(payload.height, payload.width)
+    U, S, Vt = randomized_svd(matrix, seed=42, dtype=np.float32)
 
-        results[ch_name] = {
-            "U": U.tolist(),
-            "S": S.tolist(),
-            "Vt": Vt.tolist(),
-        }
-
+    results = {
+        "U": U.tolist(),
+        "S": S.tolist(),
+        "Vt": Vt.tolist(),
+    }
     return results

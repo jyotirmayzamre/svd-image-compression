@@ -13,6 +13,8 @@ export interface SvdResult {
     Vt: number[][];
 }
 
+export type Channel = "R" | "G" | "B";
+
 export interface ChannelState {
   matrix: Matrix | null;
   setMatrix: (m: Matrix | null) => void;
