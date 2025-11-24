@@ -1,4 +1,4 @@
-from utils import _asarray_module, _dot, _qr, small_svd_via_eigh
+from .utils import _asarray_module, _dot, _qr, small_svd_via_eigh
 import numpy as np
 
 def randomized_svd(A, p=10, q=2, seed=None, dtype=np.float32):
