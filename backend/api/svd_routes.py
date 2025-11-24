@@ -9,8 +9,7 @@ router = APIRouter()
 class MatrixPayload(BaseModel):
     width: int
     height: int
-    data: list[list[float]]
-    channels: dict
+    data: list[list[int]]
 
 
 @router.post("/svd")

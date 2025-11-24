@@ -1,107 +1,60 @@
 import { createContext, useContext, useState } from "react";
 import type { ReactNode } from "react";
 
-export interface Matrix {
-    rows: number;
-    cols: number;
-    data: number[][];
-}
-
-export interface SvdResult {
+export interface Svd {
+    width: number;
+    height: number;
     U: number[][];
-    S: number[][];
+    S: number[];
     Vt: number[][];
 }
 
-export type Channel = "R" | "G" | "B";
 
-export interface ChannelState {
-  matrix: Matrix | null;
-  setMatrix: (m: Matrix | null) => void;
+interface ContextType {
+    R: Svd | null;
+    setR: (r: Svd) => void;
 
-  svd: SvdResult | null;
-  setSvd: (s: SvdResult | null) => void;
+    G: Svd | null;
+    setG: (g: Svd) => void;
 
-  isLoading: boolean;
-  setIsLoading: (b: boolean) => void;
+    B: Svd | null;
+    setB: (b: Svd) => void;
 
-  error: string | null;
-  setError: (e: string | null) => void;
-}
+    width: number;
+    setWidth: (w: number) => void;
 
-interface SvdContextType {
-    R: ChannelState;
-    G: ChannelState;
-    B: ChannelState;
+    height: number;
+    setHeight: (h: number) => void;
+
+    rank: number;
+    setRank: (r: number) => void;
 
     resetAll: () => void;
 }
 
-
-const SvdContext = createContext<SvdContextType | undefined>(undefined);
+const SvdContext = createContext<ContextType | undefined>(undefined);
 
 export const SvdProvider = ({ children }: { children: ReactNode }) => {
-  const [Rmatrix, setRMatrix] = useState<Matrix | null>(null);
-  const [RSVD, setRSVD] = useState<SvdResult | null>(null);
-  const [RLoading, setRLoading] = useState(false);
-  const [RError, setRError] = useState<string | null>(null);
-
-  const [Gmatrix, setGMatrix] = useState<Matrix | null>(null);
-  const [GSVD, setGSVD] = useState<SvdResult | null>(null);
-  const [GLoading, setGLoading] = useState(false);
-  const [GError, setGError] = useState<string | null>(null);
-
-  const [Bmatrix, setBMatrix] = useState<Matrix | null>(null);
-  const [BSVD, setBSVD] = useState<SvdResult | null>(null);
-  const [BLoading, setBLoading] = useState(false);
-  const [BError, setBError] = useState<string | null>(null);
+  const [R, setR] = useState<Svd | null>(null);
+  const [G, setG] = useState<Svd | null>(null);
+  const [B, setB] = useState<Svd | null>(null);
+  const [width, setWidth] = useState<number>(0);
+  const [height, setHeight] = useState<number>(0);
+  const [rank, setRank] = useState<number>(1);
 
   const resetAll = () => {
-    setRMatrix(null); setRSVD(null); setRLoading(false); setRError(null);
-    setGMatrix(null); setGSVD(null); setGLoading(false); setGError(null);
-    setBMatrix(null); setBSVD(null); setBLoading(false); setBError(null);
-  };
+    setR(null); setG(null); setB(null); setRank(1);
+  }
+
 
   return (
     <SvdContext.Provider
-      value={{
-        R: {
-          matrix: Rmatrix,
-          setMatrix: setRMatrix,
-          svd: RSVD,
-          setSvd: setRSVD,
-          isLoading: RLoading,
-          setIsLoading: setRLoading,
-          error: RError,
-          setError: setRError,
-        },
-        G: {
-          matrix: Gmatrix,
-          setMatrix: setGMatrix,
-          svd: GSVD,
-          setSvd: setGSVD,
-          isLoading: GLoading,
-          setIsLoading: setGLoading,
-          error: GError,
-          setError: setGError,
-        },
-        B: {
-          matrix: Bmatrix,
-          setMatrix: setBMatrix,
-          svd: BSVD,
-          setSvd: setBSVD,
-          isLoading: BLoading,
-          setIsLoading: setBLoading,
-          error: BError,
-          setError: setBError,
-        },
-        resetAll,
-      }}
+    value={{R, setR, G, setG, B, setB, width, setWidth, height, setHeight, rank, setRank, resetAll}}
     >
       {children}
     </SvdContext.Provider>
-  );
-};
+  )
+}
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const useSvdStore = () => {
