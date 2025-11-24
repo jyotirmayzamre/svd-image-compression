@@ -2,8 +2,6 @@ import { createContext, useContext, useState } from "react";
 import type { ReactNode } from "react";
 
 export interface Svd {
-    width: number;
-    height: number;
     U: number[][];
     S: number[];
     Vt: number[][];

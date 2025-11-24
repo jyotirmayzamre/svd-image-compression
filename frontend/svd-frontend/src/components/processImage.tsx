@@ -1,27 +1,24 @@
 import { type JSX } from "react";
 import { useSvdStore, type Svd } from "../state/context";
 
+
 function loadImage(file: File): Promise<HTMLImageElement> {
     return new Promise((resolve, reject) => {
         const img = new Image();
         img.onload = () => resolve(img);
         img.onerror = reject;
-
         img.src = URL.createObjectURL(file);
     })
 }
 
-function getImageData(img: HTMLImageElement){
+function getImageData(img: HTMLImageElement, width: number, height: number){
     const canvas = document.createElement("canvas");
-    canvas.width = img.width;
-    canvas.height = img.height;
-
+    canvas.width = width;
+    canvas.height = height;
     const ctx = canvas.getContext("2d")!;
     ctx.drawImage(img, 0, 0);
-
-    const data = ctx.getImageData(0, 0, img.width, img.height).data;
-
-    return extractMatrices(data, img.width, img.height);
+    const data = ctx.getImageData(0, 0, width, height).data;
+    return extractMatrices(data, width, height);
 }
 
 
@@ -29,7 +26,7 @@ function extractMatrices(
     data: Uint8ClampedArray,
     width: number,
     height: number
-) {
+): Record<string, number[]> {
 
     const size = width * height;
     const red: number[] = [];
@@ -50,7 +47,7 @@ function extractMatrices(
     };
 }
 
-async function computeSVDWithWorkers(matrices: Record<string, number[]>, width: number, height: number): Promise<void> {//Promise<Record<string, Svd>> {
+async function computeSVDWithWorkers(matrices: Record<string, number[]>, width: number, height: number): Promise<{channel: string, svd: Svd}[]> {
     const workers: Record<string, Worker> = {
         "red": new Worker(new URL("../workers/worker.ts", import.meta.url), { type: "module" }),
         "green": new Worker(new URL("../workers/worker.ts", import.meta.url), { type: "module" }),
@@ -76,12 +73,22 @@ async function computeSVDWithWorkers(matrices: Record<string, number[]>, width: 
     }));
 
    const results = await Promise.all(promises);
-   console.log(results);
+   return results;
+}
+
+function scaleDimensions(maxDimension = 512, width: number, height: number){
+    if(width > maxDimension || height > maxDimension){
+        const scale = maxDimension / Math.max(width, height);
+        width = Math.floor(width*scale);
+        height = Math.floor(height*scale);
+    }
+
+    return { width, height};
 }
 
 function ProcessImage(): JSX.Element {
     
-    const { setWidth, setHeight, resetAll } = useSvdStore();
+    const { setR, setG, setB, setWidth, setHeight, resetAll } = useSvdStore();
 
     const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -91,17 +98,21 @@ function ProcessImage(): JSX.Element {
 
         //getHTMLImageElement from file
         const img = await loadImage(file);
-        setWidth(img.width);
-        setHeight(img.height);
+        const { width, height } = scaleDimensions(512, img.width, img.height);
+        setWidth(width);
+        setHeight(height);
 
         //get channel data 
-        const { red, green, blue } = getImageData(img);
+        const { red, green, blue } = getImageData(img, width, height);
 
         //get SVDs for each channel
-        computeSVDWithWorkers({"red": red, "green": green, "blue": blue}, img.width, img.height);
+        const results = await computeSVDWithWorkers({"red": red, "green": green, "blue": blue}, width, height);
 
-        
+        setR(results[0].svd);
+        setG(results[0].svd);
+        setB(results[0].svd);  
     }
+    
     return (
         <div>
             <input type="file" accept="image/*" onChange={handleFile} />
