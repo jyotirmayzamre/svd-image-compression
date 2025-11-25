@@ -2,7 +2,7 @@ from fastapi import APIRouter, UploadFile, File, Form
 from pydantic import BaseModel
 import numpy as np
 from svd.svd_core import randomized_svd
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 import io
 from PIL import Image
 
@@ -33,7 +33,7 @@ async def compute_svd_image(
     image_bytes = await image.read()
     img = Image.open(io.BytesIO(image_bytes))
 
-    img = img.resize((width, height))
+    img = img.resize((width, height), Image.Resampling.LANCZOS)
 
     img_array = np.array(img, dtype=np.float32)
 

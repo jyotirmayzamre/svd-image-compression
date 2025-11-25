@@ -9,7 +9,7 @@ async function computeAllChannelSVDs(file: File, width: number, height: number
     formData.append('width', width.toString());
     formData.append('height', height.toString());
 
-    const response = await fetch('http://localhost:8000/api/svd-image', {
+    const response = await fetch('http://localhost:8000/api/svd', {
         method: 'POST',
         body: formData
     });
