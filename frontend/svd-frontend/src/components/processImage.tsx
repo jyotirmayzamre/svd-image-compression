@@ -2,79 +2,25 @@ import { type JSX } from "react";
 import { useSvdStore, type Svd } from "../state/context";
 
 
-function loadImage(file: File): Promise<HTMLImageElement> {
-    return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => resolve(img);
-        img.onerror = reject;
-        img.src = URL.createObjectURL(file);
-    })
-}
+async function computeAllChannelSVDs(file: File, width: number, height: number
+): Promise<{ red: Svd; green: Svd; blue: Svd }> {
+    const formData = new FormData();
+    formData.append('image', file);
+    formData.append('width', width.toString());
+    formData.append('height', height.toString());
 
-function getImageData(img: HTMLImageElement, width: number, height: number){
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext("2d")!;
-    ctx.drawImage(img, 0, 0);
-    const data = ctx.getImageData(0, 0, width, height).data;
-    return extractMatrices(data, width, height);
-}
+    const response = await fetch('http://localhost:8000/api/svd-image', {
+        method: 'POST',
+        body: formData
+    });
 
-
-function extractMatrices(
-    data: Uint8ClampedArray,
-    width: number,
-    height: number
-): Record<string, number[]> {
-
-    const size = width * height;
-    const red: number[] = [];
-    const green: number[] = [];
-    const blue: number[] = [];
-
-    for (let i = 0; i < size; i++){
-        const index = i * 4;
-        red[i] = data[index];
-        green[i] = data[index+1];
-        blue[i] = data[index+2];
+    if (!response.ok) {
+        throw new Error('SVD computation failed');
     }
 
-    return {
-        "red": red,
-        "green": green ,
-        "blue": blue ,
-    };
+    return await response.json();
 }
 
-async function computeSVDWithWorkers(matrices: Record<string, number[]>, width: number, height: number): Promise<{channel: string, svd: Svd}[]> {
-    const workers: Record<string, Worker> = {
-        "red": new Worker(new URL("../workers/svdWorker.ts", import.meta.url), { type: "module" }),
-        "green": new Worker(new URL("../workers/svdWorker.ts", import.meta.url), { type: "module" }),
-        "blue": new Worker(new URL("../workers/svdWorker.ts", import.meta.url), { type: "module" })
-    };
-
-    const promises = (["red", "green", "blue"].map((channel) => {
-        return new Promise<{ channel: string, svd: Svd }>((resolve) => {
-            const worker = workers[channel];
-
-            worker.onmessage = (e) => {
-                const { channel, svd } = e.data;
-                worker.terminate();
-                resolve({ channel, svd });
-            }
-
-            worker.postMessage({
-                channel,
-                matrixPayload:{ width, height, data: matrices[channel] }
-            });
-        });
-        
-    }));
-
-   const results = await Promise.all(promises);
-   return results;
-}
 
 function scaleDimensions(maxDimension = 512, width: number, height: number){
     if(width > maxDimension || height > maxDimension){
@@ -96,22 +42,23 @@ function ProcessImage(): JSX.Element {
 
         resetAll();
 
-        //getHTMLImageElement from file
-        const img = await loadImage(file);
-        const { width, height } = scaleDimensions(512, img.width, img.height);
-        setWidth(width);
-        setHeight(height);
-        setRank(height);
+         try {
+            const img = await createImageBitmap(file);
+            const { width, height } = scaleDimensions(512, img.width, img.height);
+            
+            setWidth(width);
+            setHeight(height);
+            setRank(height);
 
-        //get channel data 
-        const { red, green, blue } = getImageData(img, width, height);
+            const svds = await computeAllChannelSVDs(file, width, height);
 
-        //get SVDs for each channel
-        const results = await computeSVDWithWorkers({"red": red, "green": green, "blue": blue}, width, height);
+            setR(svds.red);
+            setG(svds.green);
+            setB(svds.blue);
+        } catch (err) {
+            console.error('Error processing image:', err);
+        } 
 
-        setR(results[0].svd);
-        setG(results[1].svd);
-        setB(results[2].svd);  
     }
     
     return (

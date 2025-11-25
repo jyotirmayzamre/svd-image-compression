@@ -1,27 +1,70 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, UploadFile, File, Form
 from pydantic import BaseModel
 import numpy as np
 from svd.svd_core import randomized_svd
-
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import io
+from PIL import Image
 
 router = APIRouter()
 
-class MatrixPayload(BaseModel):
-    width: int
-    height: int
-    data: list[int]
+
+class SVDResult(BaseModel):
+    red: dict
+    green: dict
+    blue: dict
 
 
-@router.post("/svd")
-def compute_svd_api(payload: MatrixPayload):
-    results = {}
-
-    matrix = np.array(payload.data, dtype=float).reshape(payload.height, payload.width)
-    U, S, Vt = randomized_svd(matrix, seed=42, dtype=np.float32)
-
-    results = {
-        "U": U.tolist(),
-        "S": S.tolist(),
-        "Vt": Vt.tolist(),
+def compute_channel_svd(channel_data: np.ndarray, channel_name: str) -> dict:
+    U, S, Vt = randomized_svd(channel_data, seed=42, dtype=np.float32)
+    return {
+        'channel': channel_name,
+        'U': U.tolist(),
+        'S': S.tolist(),
+        'Vt': Vt.tolist()
     }
-    return results
+
+@router.post("/svd", response_model=SVDResult)
+async def compute_svd_image(
+    image: UploadFile = File(...),
+    width: int = Form(...),
+    height: int = Form(...)
+):
+    image_bytes = await image.read()
+    img = Image.open(io.BytesIO(image_bytes))
+
+    img = img.resize((width, height))
+
+    img_array = np.array(img, dtype=np.float32)
+
+    red_channel = img_array[:, :, 0]
+    green_channel = img_array[:, :, 1]
+    blue_channel = img_array[:, :, 2]
+
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        future_red = executor.submit(compute_channel_svd, red_channel, 'red')
+        future_green = executor.submit(compute_channel_svd, green_channel, 'green')
+        future_blue = executor.submit(compute_channel_svd, blue_channel, 'blue')
+        
+        
+        red_result = future_red.result()
+        green_result = future_green.result()
+        blue_result = future_blue.result()
+
+    return {
+        'red': {
+            'U': red_result['U'],
+            'S': red_result['S'],
+            'Vt': red_result['Vt']
+        },
+        'green': {
+            'U': green_result['U'],
+            'S': green_result['S'],
+            'Vt': green_result['Vt']
+        },
+        'blue': {
+            'U': blue_result['U'],
+            'S': blue_result['S'],
+            'Vt': blue_result['Vt']
+        }
+    }

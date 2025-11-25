@@ -53,11 +53,6 @@ function ReconstructImage(){
 
     
     useEffect(() => {
-        if (R && G && B) {
-            console.log("R.U[0][0]:", R.U[0]?.[0]);
-            console.log("G.U[0][0]:", G.U[0]?.[0]);
-            console.log("B.U[0][0]:", B.U[0]?.[0]);
-        }
         async function wrapper(){
             if(!R || !G || !B) return;
             if (!canvasRef.current) return;
