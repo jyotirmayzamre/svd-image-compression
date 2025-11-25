@@ -1,0 +1,17 @@
+# Rust build artifacts
+/target/
+/Cargo.lock        # (ignore only if you're making a library, not a binary)
+
+/pkg/              # wasm-pack output directory
+wasm-pack.log
+
+# Node modules (if you're bundling with JS/TS)
+/node_modules/
+
+# Generated wasm-bindgen files
+*.wasm
+*.js
+*.ts
+
+# Misc
+.DS_Store

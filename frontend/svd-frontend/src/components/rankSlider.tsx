@@ -22,7 +22,7 @@ export default function RankSlider() {
           ${!R ? "opacity-50 pointer-events-none" : ""}
         `}
         style={{
-          accentColor: "#3b82f6", // blue thumb color
+          accentColor: "#3b82f6", 
         }}
       />
     </div>
