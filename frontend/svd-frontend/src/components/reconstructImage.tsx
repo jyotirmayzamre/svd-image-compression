@@ -9,13 +9,18 @@ async function reconstructMatrixWithWorkers(svds: Record<string, Svd>, rank: num
     }
 
     const promises = (["red", "green", "blue"].map((channel) => {
-        return new Promise<{ channel: string, reconstructed: number[][]}>((resolve) => {
+        return new Promise<Float32Array>((resolve, reject) => {
             const worker = workers[channel];
 
             worker.onmessage = (e) => {
-                const {  channel, reconstructed } = e.data;
+                const {  reconstructed } = e.data;
                 worker.terminate();
-                resolve(({ channel, reconstructed}));
+                resolve(reconstructed);
+            }
+
+            worker.onerror = (e) => {
+                worker.terminate();
+                reject(e);
             }
 
             worker.postMessage({
@@ -28,16 +33,15 @@ async function reconstructMatrixWithWorkers(svds: Record<string, Svd>, rank: num
 
     const results = await Promise.all(promises);
     
-    const output = new Uint8ClampedArray(width * height * 4);
+    const totalPixels = width*height;
+    const output = new Uint8ClampedArray(totalPixels * 4);
 
-    let ptr = 0;
-    for (let i = 0; i < height; i++) {
-        for (let j = 0; j < width; j++) {
-            output[ptr++] = results[0].reconstructed[i][j]; 
-            output[ptr++] = results[1].reconstructed[i][j]; 
-            output[ptr++] = results[2].reconstructed[i][j]; 
-            output[ptr++] = 255;                             
-        }
+    for(let i = 0; i < totalPixels; i++){
+        const idx = i*4;
+        output[idx] = results[0][i];
+        output[idx+1] = results[1][i];
+        output[idx+2] = results[2][i];
+        output[idx+3] = 255;
     }
 
     return new ImageData(output, width, height);  
@@ -48,15 +52,19 @@ function ReconstructImage(){
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
     
-
     useEffect(() => {
+        if (R && G && B) {
+            console.log("R.U[0][0]:", R.U[0]?.[0]);
+            console.log("G.U[0][0]:", G.U[0]?.[0]);
+            console.log("B.U[0][0]:", B.U[0]?.[0]);
+        }
         async function wrapper(){
             if(!R || !G || !B) return;
             if (!canvasRef.current) return;
 
             const data: ImageData = await reconstructMatrixWithWorkers(
                 {"red": R, "green": G, "blue": B},
-                172, width, height
+                rank, width, height
             );
 
             const ctx = canvasRef.current.getContext("2d")!;

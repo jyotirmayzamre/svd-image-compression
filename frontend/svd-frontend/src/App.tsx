@@ -1,4 +1,5 @@
 import ProcessImage from "./components/processImage";
+import RankSlider from "./components/rankSlider";
 import ReconstructImage from "./components/reconstructImage";
 
 export default function App() {
@@ -9,6 +10,8 @@ export default function App() {
             <ProcessImage />
 
             <ReconstructImage />
+
+            <RankSlider />
 
         </div>
     );

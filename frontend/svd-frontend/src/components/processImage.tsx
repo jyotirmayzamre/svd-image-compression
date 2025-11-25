@@ -88,7 +88,7 @@ function scaleDimensions(maxDimension = 512, width: number, height: number){
 
 function ProcessImage(): JSX.Element {
     
-    const { setR, setG, setB, setWidth, setHeight, resetAll } = useSvdStore();
+    const { setR, setG, setB, setWidth, setHeight, setRank, resetAll } = useSvdStore();
 
     const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -101,6 +101,7 @@ function ProcessImage(): JSX.Element {
         const { width, height } = scaleDimensions(512, img.width, img.height);
         setWidth(width);
         setHeight(height);
+        setRank(height);
 
         //get channel data 
         const { red, green, blue } = getImageData(img, width, height);
@@ -109,8 +110,8 @@ function ProcessImage(): JSX.Element {
         const results = await computeSVDWithWorkers({"red": red, "green": green, "blue": blue}, width, height);
 
         setR(results[0].svd);
-        setG(results[0].svd);
-        setB(results[0].svd);  
+        setG(results[1].svd);
+        setB(results[2].svd);  
     }
     
     return (

@@ -1,9 +1,9 @@
 import { useSvdStore } from "../state/context";
 
 export default function RankSlider() {
-    const { rank, setRank, R } = useSvdStore();
+    const { rank, R, setRank, height} = useSvdStore();
 
-    const maxRank = R.svd ? R.svd.S.length : 50; // fallback until SVD loaded
+    const maxRank = height 
 
     return (
         <div style={{ marginTop: "20px" }}>
@@ -13,7 +13,7 @@ export default function RankSlider() {
                 min={1}
                 max={maxRank}
                 value={rank}
-                disabled={!R.svd}
+                disabled={!R}
                 onChange={(e) => setRank(Number(e.target.value))}
             />
         </div>
