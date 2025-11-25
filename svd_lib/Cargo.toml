@@ -7,4 +7,9 @@ edition = "2024"
 crate-type = ["cdylib"]
 
 [dependencies]
-wasm-bindgen = "0.2"
+js-sys = "0.3.82"
+wasm-bindgen = "0.2.95"
+
+[package.metadata.wasm-bindgen]
+externref-table-size = 4096
+reference-types = false

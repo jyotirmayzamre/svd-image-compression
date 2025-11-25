@@ -19,9 +19,9 @@ def compute_channel_svd(channel_data: np.ndarray, channel_name: str) -> dict:
     U, S, Vt = randomized_svd(channel_data, seed=42, dtype=np.float32)
     return {
         'channel': channel_name,
-        'U': U.tolist(),
+        'U': U.flatten().tolist(),
         'S': S.tolist(),
-        'Vt': Vt.tolist()
+        'Vt': Vt.flatten().tolist()
     }
 
 @router.post("/svd", response_model=SVDResult)

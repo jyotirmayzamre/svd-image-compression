@@ -1,13 +1,10 @@
-import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
-import { SvdProvider } from './state/context.tsx'
+import { SvdProvider } from './state/context.tsx';
 
 createRoot(document.getElementById('root')!).render(
-  <StrictMode>
     <SvdProvider>
       <App />
-    </SvdProvider>
-  </StrictMode>,
+    </SvdProvider>,
 )

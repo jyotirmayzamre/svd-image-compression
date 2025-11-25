@@ -1,59 +1,71 @@
 import { useEffect, useRef } from "react";
 import { useSvdStore, type Svd } from "../state/context";
+import init, { reconstruct } from "../../../../svd_lib/pkg/svd_lib.js";
+
+let workersInitialized = false;
+const workers: Record<string, Worker> = {};
+let wasmInitialized = false;
+
 
 async function reconstructMatrixWithWorkers(svds: Record<string, Svd>, rank: number, width: number, height: number): Promise<ImageData>{
-    const workers: Record<string, Worker> = {
-        "red": new Worker(new URL("../workers/channelWorker.ts", import.meta.url), { type: "module" }),
-        "green": new Worker(new URL("../workers/channelWorker.ts", import.meta.url), { type: "module" }),
-        "blue": new Worker(new URL("../workers/channelWorker.ts", import.meta.url), { type: "module" })
+    if (!wasmInitialized) {
+            await init();
+            wasmInitialized = true;
+        }
+
+    if (!workersInitialized) {
+        workers.red = new Worker(new URL("../workers/channelWorker.ts", import.meta.url), { type: "module" });
+        workers.green = new Worker(new URL("../workers/channelWorker.ts", import.meta.url), { type: "module" });
+        workers.blue = new Worker(new URL("../workers/channelWorker.ts", import.meta.url), { type: "module" });
+        workersInitialized = true;
     }
 
     const promises = (["red", "green", "blue"].map((channel) => {
         return new Promise<Float32Array>((resolve, reject) => {
             const worker = workers[channel];
 
-            worker.onmessage = (e) => {
-                const {  reconstructed } = e.data;
-                worker.terminate();
+            const onMessage = (e: MessageEvent) => {
+                const { reconstructed } = e.data;
+                worker.removeEventListener('message', onMessage);
+                worker.removeEventListener('error', onError);
                 resolve(reconstructed);
-            }
+            };
 
-            worker.onerror = (e) => {
-                worker.terminate();
+            const onError = (e: ErrorEvent) => {
+                console.error(e);
+                worker.removeEventListener('message', onMessage);
+                worker.removeEventListener('error', onError);
                 reject(e);
-            }
+            };
 
-            worker.postMessage({
-                channel,
-                svd: svds[channel],
-                rank
-            });
-        }); 
+            worker.addEventListener('message', onMessage);
+            worker.addEventListener('error', onError);
+
+
+            const U_buffer: SharedArrayBuffer = svds[channel].U;
+            const S_buffer: SharedArrayBuffer = svds[channel].S;
+            const Vt_buffer: SharedArrayBuffer = svds[channel].Vt;
+
+            worker.postMessage({ channel, U_buffer, S_buffer, Vt_buffer, width, height, rank});
+           
+            }); 
     }));
-
     const results = await Promise.all(promises);
-    
-    const totalPixels = width*height;
-    const output = new Uint8ClampedArray(totalPixels * 4);
+    const output = reconstruct(results[0], results[1], results[2], width, height);
 
-    for(let i = 0; i < totalPixels; i++){
-        const idx = i*4;
-        output[idx] = results[0][i];
-        output[idx+1] = results[1][i];
-        output[idx+2] = results[2][i];
-        output[idx+3] = 255;
-    }
+    const rgba = new Uint8ClampedArray(output.length);
+    rgba.set(output);  
 
-    return new ImageData(output, width, height);  
+    return new ImageData(rgba, width, height);  
 }
 
 function ReconstructImage(){
     const { R, G, B, height, width, rank } = useSvdStore();
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
-
     
     useEffect(() => {
         async function wrapper(){
+
             if(!R || !G || !B) return;
             if (!canvasRef.current) return;
             const canvas = canvasRef.current;

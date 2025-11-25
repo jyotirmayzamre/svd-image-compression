@@ -2,9 +2,9 @@ import { createContext, useContext, useState } from "react";
 import type { ReactNode } from "react";
 
 export interface Svd {
-    U: number[][];
-    S: number[];
-    Vt: number[][];
+    U: SharedArrayBuffer;
+    S: SharedArrayBuffer;
+    Vt: SharedArrayBuffer;
 }
 
 

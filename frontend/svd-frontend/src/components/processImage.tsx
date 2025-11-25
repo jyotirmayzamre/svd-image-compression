@@ -1,9 +1,9 @@
 import { type JSX } from "react";
-import { useSvdStore, type Svd } from "../state/context";
+import { useSvdStore } from "../state/context";
 
 
 async function computeAllChannelSVDs(file: File, width: number, height: number
-): Promise<{ red: Svd; green: Svd; blue: Svd }> {
+){
     const formData = new FormData();
     formData.append('image', file);
     formData.append('width', width.toString());
@@ -32,6 +32,13 @@ function scaleDimensions(maxDimension = 512, width: number, height: number){
     return { width, height};
 }
 
+function createSharedFloat32Array(data: number[]): SharedArrayBuffer {
+    const sharedBuffer = new SharedArrayBuffer(data.length * Float32Array.BYTES_PER_ELEMENT);
+    const view = new Float32Array(sharedBuffer);
+    view.set(data);
+    return sharedBuffer;
+}
+
 function ProcessImage(): JSX.Element {
     
     const { setR, setG, setB, setWidth, setHeight, setRank, resetAll } = useSvdStore();
@@ -50,11 +57,44 @@ function ProcessImage(): JSX.Element {
             setHeight(height);
             setRank(height);
 
-            const svds = await computeAllChannelSVDs(file, width, height);
+            const rawSvds = await computeAllChannelSVDs(file, width, height);
 
-            setR(svds.red);
-            setG(svds.green);
-            setB(svds.blue);
+            // setR({
+            //     U: new Float32Array(rawSvds.red.U).buffer,
+            //     S: new Float32Array(rawSvds.red.S).buffer,
+            //     Vt: new Float32Array(rawSvds.red.Vt).buffer
+            // });
+
+            // setG({
+            //     U: new Float32Array(rawSvds.green.U).buffer,
+            //     S: new Float32Array(rawSvds.green.S).buffer,
+            //     Vt: new Float32Array(rawSvds.green.Vt).buffer
+            // });
+
+            // setB({
+            //     U: new Float32Array(rawSvds.blue.U).buffer,
+            //     S: new Float32Array(rawSvds.blue.S).buffer,
+            //     Vt: new Float32Array(rawSvds.blue.Vt).buffer
+            // })
+
+            setR({
+                U: createSharedFloat32Array(rawSvds.red.U),
+                S: createSharedFloat32Array(rawSvds.red.S),
+                Vt: createSharedFloat32Array(rawSvds.red.Vt)
+            });
+
+            setG({
+                U: createSharedFloat32Array(rawSvds.green.U),
+                S: createSharedFloat32Array(rawSvds.green.S),
+                Vt: createSharedFloat32Array(rawSvds.green.Vt)
+            });
+
+            setB({
+                U: createSharedFloat32Array(rawSvds.blue.U),
+                S: createSharedFloat32Array(rawSvds.blue.S),
+                Vt: createSharedFloat32Array(rawSvds.blue.Vt)
+            });
+
         } catch (err) {
             console.error('Error processing image:', err);
         } 
