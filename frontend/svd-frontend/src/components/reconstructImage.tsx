@@ -56,6 +56,7 @@ function ReconstructImage(){
         async function wrapper(){
             if(!R || !G || !B) return;
             if (!canvasRef.current) return;
+            const canvas = canvasRef.current;
 
             const data: ImageData = await reconstructMatrixWithWorkers(
                 {"red": R, "green": G, "blue": B},
@@ -63,18 +64,48 @@ function ReconstructImage(){
             );
 
             const ctx = canvasRef.current.getContext("2d")!;
-            canvasRef.current.width = width;
-            canvasRef.current.height = height;
-            ctx.putImageData(data, 0, 0);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const offCanvas = document.createElement("canvas");
+            offCanvas.width = width;
+            offCanvas.height = height;
+            const offCtx = offCanvas.getContext("2d");
+            if (!offCtx) return;
+
+            offCtx.putImageData(data, 0, 0);
+
+
+            const scale = Math.min(canvas.width / width, canvas.height / height);
+            
+            const drawWidth = width * scale;
+            const drawHeight = height * scale;
+
+            const offsetX = (canvas.width - drawWidth) / 2;
+            const offsetY = (canvas.height - drawHeight) / 2;
+
+
+
+            ctx.drawImage(offCanvas, offsetX, offsetY, drawWidth, drawHeight);
         }
         wrapper();
     }, [R, G, B, width, height, rank])
 
 
     return (
-        <div style={{ marginTop: "20px" }}>
-            <h1>Reconstructed</h1>
-            <canvas ref={canvasRef} />
+        <div className="flex m-3 justify-center items-center p-5 w-[1000px] h-[400px]">
+            <canvas ref={canvasRef} width={700} height={400}
+            className="border border-gray-300  shadow-md bg-black"
+            />
+            <div className="w-[300px] bg-[rgb(238,238,238)] h-[350px] shadow-md p-2 font-[Lucida] flex flex-col justify-center items-center gap-4">
+                <p><span className="font-light text-gray-600 text-sm">Image Size: </span>{width} x {height}</p>
+                <p><span className="font-light text-gray-600 text-sm">Total Pixels: </span>{width * height}</p>
+                <p><span className="font-light text-gray-600 text-sm">Compression Ratio: </span></p>
+                <p><span className="font-light text-gray-600 text-sm">Frobenius Error: </span></p>
+                <p><span className="font-light text-gray-600 text-sm">PSNR (dB): </span></p>
+                <p><span className="font-light text-gray-600 text-sm">Energy: </span></p>
+                <p><span className="font-light text-gray-600 text-sm">#Singular Values: </span>{rank}</p>
+
+            </div>
         </div>
     );
 }  

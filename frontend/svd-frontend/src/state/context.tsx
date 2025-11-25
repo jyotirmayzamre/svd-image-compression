@@ -38,7 +38,7 @@ export const SvdProvider = ({ children }: { children: ReactNode }) => {
   const [B, setB] = useState<Svd | null>(null);
   const [width, setWidth] = useState<number>(0);
   const [height, setHeight] = useState<number>(0);
-  const [rank, setRank] = useState<number>(1);
+  const [rank, setRank] = useState<number>(0);
 
   const resetAll = () => {
     setR(null); setG(null); setB(null); setRank(1);

@@ -62,8 +62,13 @@ function ProcessImage(): JSX.Element {
     }
     
     return (
-        <div>
-            <input type="file" accept="image/*" onChange={handleFile} />
+        <div className="flex flex-col items-center m-2">
+            <input accept="image/*" type="file" className="hidden" onChange={handleFile} id="file-upload"/>
+
+            <label
+                htmlFor="file-upload"
+                className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg shadow-md transition-colors duration-200"
+            >Upload Image</label>
         </div>
     )
     
