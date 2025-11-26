@@ -30,6 +30,7 @@ async def compute_svd_image(
     width: int = Form(...),
     height: int = Form(...)
 ):
+    
     image_bytes = await image.read()
     img = Image.open(io.BytesIO(image_bytes))
 

@@ -8,17 +8,7 @@ let wasmInitialized = false;
 
 
 async function reconstructMatrixWithWorkers(svds: Record<string, Svd>, rank: number, width: number, height: number): Promise<ImageData>{
-    if (!wasmInitialized) {
-            await init({module_or_path: "/svd_lib_bg.wasm"});
-            wasmInitialized = true;
-        }
-        
-    if (!workersInitialized) {
-        workers.red = new Worker(new URL("../workers/channelWorker.ts", import.meta.url), { type: "module" });
-        workers.green = new Worker(new URL("../workers/channelWorker.ts", import.meta.url), { type: "module" });
-        workers.blue = new Worker(new URL("../workers/channelWorker.ts", import.meta.url), { type: "module" });
-        workersInitialized = true;
-    }
+    
 
     const promises = (["red", "green", "blue"].map((channel) => {
         return new Promise<Float32Array>((resolve, reject) => {
@@ -51,7 +41,7 @@ async function reconstructMatrixWithWorkers(svds: Record<string, Svd>, rank: num
             }); 
     }));
     const results = await Promise.all(promises);
-    const output = reconstruct(results[0], results[1], results[2], width, height);
+    const output: Float32Array = reconstruct(results[0], results[1], results[2], width, height);
 
     const rgba = new Uint8ClampedArray(output.length);
     rgba.set(output);  
@@ -59,11 +49,26 @@ async function reconstructMatrixWithWorkers(svds: Record<string, Svd>, rank: num
     return new ImageData(rgba, width, height);  
 }
 
+async function initialize(){
+    if (!wasmInitialized) {
+            await init({module_or_path: "/svd_lib_bg.wasm"});
+            wasmInitialized = true;
+        }
+        
+    if (!workersInitialized) {
+        workers.red = new Worker(new URL("../workers/channelWorker.ts", import.meta.url), { type: "module" });
+        workers.green = new Worker(new URL("../workers/channelWorker.ts", import.meta.url), { type: "module" });
+        workers.blue = new Worker(new URL("../workers/channelWorker.ts", import.meta.url), { type: "module" });
+        workersInitialized = true;
+    }
+}
+
 function ReconstructImage(){
     const { R, G, B, height, width, rank } = useSvdStore();
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     
     useEffect(() => {
+        initialize();
         async function wrapper(){
 
             if(!R || !G || !B) return;
@@ -85,19 +90,9 @@ function ReconstructImage(){
             if (!offCtx) return;
 
             offCtx.putImageData(data, 0, 0);
-
-
-            const scale = Math.min(canvas.width / width, canvas.height / height);
-            
-            const drawWidth = width * scale;
-            const drawHeight = height * scale;
-
-            const offsetX = (canvas.width - drawWidth) / 2;
-            const offsetY = (canvas.height - drawHeight) / 2;
-
-
-
-            ctx.drawImage(offCanvas, offsetX, offsetY, drawWidth, drawHeight);
+            const offsetX = (canvas.width - width) / 2;
+            const offsetY = (canvas.height - height) / 2;
+            ctx.drawImage(offCanvas, offsetX, offsetY);
         }
         wrapper();
     }, [R, G, B, width, height, rank])

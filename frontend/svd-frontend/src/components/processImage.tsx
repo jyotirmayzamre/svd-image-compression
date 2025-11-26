@@ -2,8 +2,7 @@ import { type JSX } from "react";
 import { useSvdStore } from "../state/context";
 
 
-async function computeAllChannelSVDs(file: File, width: number, height: number
-){
+async function computeAllChannelSVDs(file: File, width: number, height: number){
     const formData = new FormData();
     formData.append('image', file);
     formData.append('width', width.toString());
@@ -21,16 +20,20 @@ async function computeAllChannelSVDs(file: File, width: number, height: number
     return await response.json();
 }
 
+function scaleToCanvas(
+    imgWidth: number,
+    imgHeight: number,
+    canvasWidth = 700,
+    canvasHeight = 400
+){
+    const scale = Math.min(canvasWidth / imgWidth, canvasHeight / imgHeight);
 
-function scaleDimensions(maxDimension = 512, width: number, height: number){
-    if(width > maxDimension || height > maxDimension){
-        const scale = maxDimension / Math.max(width, height);
-        width = Math.floor(width*scale);
-        height = Math.floor(height*scale);
-    }
+    const newWidth = Math.floor(imgWidth * scale);
+    const newHeight = Math.floor(imgHeight * scale);
 
-    return { width, height};
+    return { width: newWidth, height: newHeight };
 }
+
 
 function createSharedFloat32Array(data: number[]): SharedArrayBuffer {
     const sharedBuffer = new SharedArrayBuffer(data.length * Float32Array.BYTES_PER_ELEMENT);
@@ -51,31 +54,15 @@ function ProcessImage(): JSX.Element {
 
          try {
             const img = await createImageBitmap(file);
-            const { width, height } = scaleDimensions(512, img.width, img.height);
+            const canvasWidth = 700;
+            const canvasHeight = 400;
+            const { width, height } = scaleToCanvas(img.width, img.height, canvasWidth, canvasHeight);
             
             setWidth(width);
             setHeight(height);
             setRank(height);
 
             const rawSvds = await computeAllChannelSVDs(file, width, height);
-
-            // setR({
-            //     U: new Float32Array(rawSvds.red.U).buffer,
-            //     S: new Float32Array(rawSvds.red.S).buffer,
-            //     Vt: new Float32Array(rawSvds.red.Vt).buffer
-            // });
-
-            // setG({
-            //     U: new Float32Array(rawSvds.green.U).buffer,
-            //     S: new Float32Array(rawSvds.green.S).buffer,
-            //     Vt: new Float32Array(rawSvds.green.Vt).buffer
-            // });
-
-            // setB({
-            //     U: new Float32Array(rawSvds.blue.U).buffer,
-            //     S: new Float32Array(rawSvds.blue.S).buffer,
-            //     Vt: new Float32Array(rawSvds.blue.Vt).buffer
-            // })
 
             setR({
                 U: createSharedFloat32Array(rawSvds.red.U),
