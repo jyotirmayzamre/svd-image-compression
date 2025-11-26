@@ -12,6 +12,7 @@ self.onmessage = async (event: MessageEvent) => {
     const U = new Float32Array(U_buffer).slice(0);
     const S = new Float32Array(S_buffer).slice(0);
     const Vt = new Float32Array(Vt_buffer).slice(0);
+    
     try{
         const reconstructed = reconstruct_channel(U, S, Vt, width, height, rank);
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment

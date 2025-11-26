@@ -6,10 +6,8 @@ let workersInitialized = false;
 const workers: Record<string, Worker> = {};
 let wasmInitialized = false;
 
-
 async function reconstructMatrixWithWorkers(svds: Record<string, Svd>, rank: number, width: number, height: number): Promise<ImageData>{
     
-
     const promises = (["red", "green", "blue"].map((channel) => {
         return new Promise<Float32Array>((resolve, reject) => {
             const worker = workers[channel];
