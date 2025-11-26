@@ -9,10 +9,10 @@ let wasmInitialized = false;
 
 async function reconstructMatrixWithWorkers(svds: Record<string, Svd>, rank: number, width: number, height: number): Promise<ImageData>{
     if (!wasmInitialized) {
-            await init();
+            await init({module_or_path: "/svd_lib_bg.wasm"});
             wasmInitialized = true;
         }
-
+        
     if (!workersInitialized) {
         workers.red = new Worker(new URL("../workers/channelWorker.ts", import.meta.url), { type: "module" });
         workers.green = new Worker(new URL("../workers/channelWorker.ts", import.meta.url), { type: "module" });
