@@ -1,6 +1,8 @@
 import { useEffect, useRef } from "react";
 import { useSvdStore, type Svd } from "../state/context";
 import init, { reconstruct } from "../../../../svd_lib/pkg/svd_lib.js";
+import { FrobeniusNorm } from "../utilities/helpers.js";
+
 
 let workersInitialized = false;
 const workers: Record<string, Worker> = {};
@@ -64,6 +66,8 @@ async function initialize(){
 function ReconstructImage(){
     const { R, G, B, height, width, rank } = useSvdStore();
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+    const totalNorm = R && G && B ? FrobeniusNorm(R.S, G.S, B.S, 0) : 0.0;
     
     useEffect(() => {
         initialize();
@@ -104,10 +108,12 @@ function ReconstructImage(){
             <div className="w-[300px] bg-[rgb(238,238,238)] h-[350px] shadow-md p-2 font-[Lucida] flex flex-col justify-center items-center gap-4">
                 <p><span className="font-light text-gray-600 text-sm">Image Size: </span>{width} x {height}</p>
                 <p><span className="font-light text-gray-600 text-sm">Total Pixels: </span>{width * height}</p>
-                <p><span className="font-light text-gray-600 text-sm">Compression Ratio: </span></p>
-                <p><span className="font-light text-gray-600 text-sm">Frobenius Error: </span></p>
+                <p><span className="font-light text-gray-600 text-sm">Compression Ratio: </span>
+                {rank ? ((width * height) / (rank*(width + height + 1))).toFixed(2) : 0}</p>
+                <p><span className="font-light text-gray-600 text-sm">Frobenius Error: </span>
+                {R && G && B ? ((FrobeniusNorm(R?.S, G?.S, B?.S, rank) / totalNorm)*100).toFixed(2) : 0.0}%
+                </p>
                 <p><span className="font-light text-gray-600 text-sm">PSNR (dB): </span></p>
-                <p><span className="font-light text-gray-600 text-sm">Energy: </span></p>
                 <p><span className="font-light text-gray-600 text-sm">#Singular Values: </span>{rank}</p>
 
             </div>

@@ -46,13 +46,14 @@ function ProcessImage(): JSX.Element {
     
     const { setR, setG, setB, setWidth, setHeight, setRank, resetAll } = useSvdStore();
 
+
     const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if(!file) return;
 
         resetAll();
 
-         try {
+        try {
             const img = await createImageBitmap(file);
             const canvasWidth = 700;
             const canvasHeight = 400;
