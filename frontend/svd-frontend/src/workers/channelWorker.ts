@@ -2,6 +2,7 @@ import init, { reconstruct_channel } from '../../../../svd_lib/pkg/svd_lib.js';
 
 let wasmInitialized = false;
 
+//Worker code that reconstructs channel matrix given SVDs
 self.onmessage = async (event: MessageEvent) => {
     if (!wasmInitialized) {
         await init({module_or_path: "/svd_lib_bg.wasm"});

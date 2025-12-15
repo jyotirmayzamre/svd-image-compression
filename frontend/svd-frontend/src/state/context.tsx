@@ -32,6 +32,8 @@ interface ContextType {
 
 const SvdContext = createContext<ContextType | undefined>(undefined);
 
+
+//Context provider that stores SVDs, height, width, and singular values as state
 export const SvdProvider = ({ children }: { children: ReactNode }) => {
   const [R, setR] = useState<Svd | null>(null);
   const [G, setG] = useState<Svd | null>(null);

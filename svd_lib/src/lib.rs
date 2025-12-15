@@ -1,6 +1,7 @@
 use wasm_bindgen::prelude::*;
 use js_sys::Float32Array;
 
+//reconstructs image matrix given flat channel matrices
 #[wasm_bindgen]
 pub fn reconstruct(
     r: Float32Array,
@@ -31,6 +32,7 @@ pub fn reconstruct(
 }
 
 
+//reconstructs channel matrix as a flat matrix from SVDs
 #[wasm_bindgen]
 pub fn reconstruct_channel(
     u: Float32Array,

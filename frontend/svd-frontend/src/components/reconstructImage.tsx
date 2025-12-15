@@ -1,13 +1,13 @@
 import { useEffect, useRef } from "react";
 import { useSvdStore, type Svd } from "../state/context";
 import init, { reconstruct } from "../../../../svd_lib/pkg/svd_lib.js";
-import { FrobeniusNorm } from "../utilities/helpers.js";
 
 
 let workersInitialized = false;
 const workers: Record<string, Worker> = {};
 let wasmInitialized = false;
 
+//Reconstructs each channel's matrix using a web worker
 async function reconstructMatrixWithWorkers(svds: Record<string, Svd>, rank: number, width: number, height: number): Promise<ImageData>{
     
     const promises = (["red", "green", "blue"].map((channel) => {
@@ -41,6 +41,8 @@ async function reconstructMatrixWithWorkers(svds: Record<string, Svd>, rank: num
             }); 
     }));
     const results = await Promise.all(promises);
+
+    //reconstructs full colour image matrix
     const output: Float32Array = reconstruct(results[0], results[1], results[2], width, height);
 
     const rgba = new Uint8ClampedArray(output.length);
@@ -66,9 +68,8 @@ async function initialize(){
 function ReconstructImage(){
     const { R, G, B, height, width, rank } = useSvdStore();
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
-
-    const totalNorm = R && G && B ? FrobeniusNorm(R.S, G.S, B.S, 0) : 0.0;
     
+    //obtains reconstructed image matrix and puts image data in canvas
     useEffect(() => {
         initialize();
         async function wrapper(){
@@ -110,10 +111,6 @@ function ReconstructImage(){
                 <p><span className="font-light text-gray-600 text-sm">Total Pixels: </span>{width * height}</p>
                 <p><span className="font-light text-gray-600 text-sm">Compression Ratio: </span>
                 {rank ? ((width * height) / (rank*(width + height + 1))).toFixed(2) : 0}</p>
-                <p><span className="font-light text-gray-600 text-sm">Frobenius Error: </span>
-                {R && G && B ? ((FrobeniusNorm(R?.S, G?.S, B?.S, rank) / totalNorm)*100).toFixed(2) : 0.0}%
-                </p>
-                <p><span className="font-light text-gray-600 text-sm">PSNR (dB): </span></p>
                 <p><span className="font-light text-gray-600 text-sm">#Singular Values: </span>{rank}</p>
 
             </div>

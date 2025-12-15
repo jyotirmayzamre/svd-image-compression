@@ -1,12 +1,10 @@
 import { type JSX } from "react";
 import { useSvdStore } from "../state/context";
 
-
-async function computeAllChannelSVDs(file: File, width: number, height: number){
+//Sends request with the entire image matrix to backend
+async function computeAllChannelSVDs(file: File){
     const formData = new FormData();
     formData.append('image', file);
-    formData.append('width', width.toString());
-    formData.append('height', height.toString());
 
     const response = await fetch('http://localhost:8000/api/svd', {
         method: 'POST',
@@ -20,21 +18,8 @@ async function computeAllChannelSVDs(file: File, width: number, height: number){
     return await response.json();
 }
 
-function scaleToCanvas(
-    imgWidth: number,
-    imgHeight: number,
-    canvasWidth = 700,
-    canvasHeight = 400
-){
-    const scale = Math.min(canvasWidth / imgWidth, canvasHeight / imgHeight);
 
-    const newWidth = Math.floor(imgWidth * scale);
-    const newHeight = Math.floor(imgHeight * scale);
-
-    return { width: newWidth, height: newHeight };
-}
-
-
+//Creates a SharedArrayBuffer out of a regular array
 function createSharedFloat32Array(data: number[]): SharedArrayBuffer {
     const sharedBuffer = new SharedArrayBuffer(data.length * Float32Array.BYTES_PER_ELEMENT);
     const view = new Float32Array(sharedBuffer);
@@ -46,7 +31,7 @@ function ProcessImage(): JSX.Element {
     
     const { setR, setG, setB, setWidth, setHeight, setRank, resetAll } = useSvdStore();
 
-
+    //Obtains the SVDs of the channels and sets it
     const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if(!file) return;
@@ -54,16 +39,11 @@ function ProcessImage(): JSX.Element {
         resetAll();
 
         try {
-            const img = await createImageBitmap(file);
-            const canvasWidth = 700;
-            const canvasHeight = 400;
-            const { width, height } = scaleToCanvas(img.width, img.height, canvasWidth, canvasHeight);
-            
-            setWidth(width);
-            setHeight(height);
-            setRank(height);
+            const rawSvds = await computeAllChannelSVDs(file);
 
-            const rawSvds = await computeAllChannelSVDs(file, width, height);
+            setWidth(rawSvds.width);
+            setHeight(rawSvds.height);
+            setRank(rawSvds.height);
 
             setR({
                 U: createSharedFloat32Array(rawSvds.red.U),

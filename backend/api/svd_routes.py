@@ -5,6 +5,7 @@ from svd.svd_core import randomized_svd
 from concurrent.futures import ThreadPoolExecutor
 import io
 from PIL import Image
+import math
 
 router = APIRouter()
 
@@ -13,6 +14,8 @@ class SVDResult(BaseModel):
     red: dict
     green: dict
     blue: dict
+    width: int
+    height: int
 
 
 def compute_channel_svd(channel_data: np.ndarray, channel_name: str) -> dict:
@@ -24,17 +27,26 @@ def compute_channel_svd(channel_data: np.ndarray, channel_name: str) -> dict:
         'Vt': Vt.flatten().tolist()
     }
 
+def scaleToCanvas(imgWidth, imgHeight, canvasWidth, canvasHeight):
+    scale = min(canvasWidth / imgWidth, canvasHeight / imgHeight)
+    newWidth = math.floor(imgWidth * scale)
+    newHeight = math.floor(imgHeight * scale)
+
+    return (newWidth, newHeight)
+
+
+#Obtains image file, gets image data
 @router.post("/svd", response_model=SVDResult)
 async def compute_svd_image(
-    image: UploadFile = File(...),
-    width: int = Form(...),
-    height: int = Form(...)
+    image: UploadFile = File(...)
 ):
     
     image_bytes = await image.read()
     img = Image.open(io.BytesIO(image_bytes))
+    width, height = img.size
+    newWidth, newHeight = scaleToCanvas(width, height, 700, 400)
 
-    img = img.resize((width, height), Image.Resampling.LANCZOS)
+    img = img.resize((newWidth, newHeight), Image.Resampling.LANCZOS)
 
     img_array = np.array(img, dtype=np.float32)
 
@@ -67,5 +79,7 @@ async def compute_svd_image(
             'U': blue_result['U'],
             'S': blue_result['S'],
             'Vt': blue_result['Vt']
-        }
+        },
+        'width': newWidth,
+        'height': newHeight
     }

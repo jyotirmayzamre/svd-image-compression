@@ -1,6 +1,7 @@
 import numpy as np
 
-def _qr(A):
+def _qr_householder(A):
+
     m, n = A.shape
     R = A.copy()
     Q = np.eye(m, dtype=A.dtype)
@@ -20,19 +21,14 @@ def _qr(A):
         w[0] = 1
         tau = -s * u1 / norm_x
 
-        R[k:, k:] -= tau * np.outer(w, np.dot(w, R[k:, k:]))
+        R[k:, k:] -= tau * np.outer(w, w @ R[k:, k:])
 
         Q[:, k:] -= tau * np.outer(Q[:, k:] @ w, w)
 
     return Q[:, :n], R[:n, :]
 
 
-def _eigh(mat):
-    vals, vecs = np.linalg.eigh(mat)
-    return vals, vecs
 
-
-#  Small SVD via eigendecomposition
 def small_svd_via_eigh(B):
     """
     Returns Ub (l x l), S (min(l,n),), Vt (min(l,n) x n)
@@ -42,12 +38,12 @@ def small_svd_via_eigh(B):
     l, n = B.shape
 
     BBt = B @ B.T
-    eigvals, eigvecs = _eigh(BBt)
+    eigvals, eigvecs = np.linalg.eigh(BBt)
 
     idx = np.argsort(eigvals)[::-1]
     eigvals = eigvals[idx]
     eigvecs = eigvecs[:, idx]
-    s = eigvals
+    s = eigvals.copy()
 
     s[s < 0] = 0
     s = np.sqrt(s)
@@ -57,14 +53,14 @@ def small_svd_via_eigh(B):
     # Compute Vt: for each singular vector i, v_i^T = (1/s_i) * u_i^T B
     tol = 1e-12
     kmax = min(l, n)
-    S = s[:kmax]
+    S = s[:kmax].copy()
     Vt_rows = []
 
     for i in range(kmax):
         si = S[i]
         ui = Ub[:, i:i+1]
         if si > tol:
-            vi_t = ((ui.T @ B) / si).reshape(-1)  # length  = n
+            vi_t = (ui.T @ B / si).reshape(-1)  # length  = n
         else:
             # singular is zero -> choose arbitrary orthonormal vector in nullspace
             vi_t = np.zeros(n, dtype=B.dtype)
@@ -72,4 +68,3 @@ def small_svd_via_eigh(B):
     Vt = np.stack(Vt_rows, axis=0)  # (kmax x n)
     return Ub[:, :kmax], S, Vt
 
-    

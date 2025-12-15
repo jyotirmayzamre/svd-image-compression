@@ -1,31 +1,30 @@
-from .utils import _qr, small_svd_via_eigh
+from .utils import _qr_householder, small_svd_via_eigh
 import numpy as np
 
 def randomized_svd(A, p=10, q=2, seed=None, dtype=np.float32):
-    m, n = A.shape
 
-    k = min(m, n)
-
-    A_xp = np.asarray(A, dtype=dtype)
+    A_xp = np.asarray(np.asarray(A, dtype=dtype))
     m, n = A_xp.shape
-    l = min(k + p, min(m, n))
+    k = min(m, n)
+    l = min(k + p, k)
 
     rng = np.random.RandomState(seed)
     # Create random Gaussian test matrix Omega (n x l)
-    Omega = rng.normal(size=(n, l)).astype(dtype)
+    Omega_cpu = rng.normal(size=(n, l)).astype(dtype)
+    Omega = np.asarray(Omega_cpu)
 
     # sample column space Y = A @ Omega
     Y = A_xp @ Omega  # (m x l)
 
     # orhhonormalize Y
-    Q, _ = _qr(Y)  # (m x l_reduced)
+    Q, _ = _qr_householder(Y)  # (m x l_reduced)
 
     # power iterations
     for i in range(q):
         Z = A_xp.T @ Q
-        Z, _ = _qr(Z)
+        Z, _ = _qr_householder(Z)
         Y = A_xp @ Z
-        Q, _ = _qr(Y)
+        Q, _ = _qr_householder(Y)
 
     # projected small matrix B = Q^T A (l x n)
     B = Q.T @ A_xp
