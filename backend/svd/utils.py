@@ -29,16 +29,36 @@ def _qr_householder(A):
 
 
 
+def compute_Vt(Ub, S, B, tol=1e-12):
+    l, n = B.shape
+    kmax = min(len(S), n)
+
+    Vt = np.zeros((kmax, n), dtype=B.dtype)
+
+    # mask of valid singular values
+    mask = S[:kmax] > tol
+    if not np.any(mask):
+        return Vt
+
+    # scale columns of Ub by 1 / S
+    Ub_scaled = Ub[:, :kmax][:, mask] / S[:kmax][mask]
+
+    # single matrix multiply
+    Vt[mask, :] = Ub_scaled.T @ B
+
+    return Vt
+
+
 def small_svd_via_eigh(B):
     """
     Returns Ub (l x l), S (min(l,n),), Vt (min(l,n) x n)
     perform eigendecomposition of B @ B^T (l x l) to obtain Ub, singular values
     """
-    B = np.asarray(B)
+    B = np.asarray(B, order="C")
     l, n = B.shape
 
     BBt = B @ B.T
-    eigvals, eigvecs = np.linalg.eigh(BBt)
+    eigvals, eigvecs = np.linalg.eigh(BBt, UPLO="U")
 
     idx = np.argsort(eigvals)[::-1]
     eigvals = eigvals[idx]
@@ -51,20 +71,10 @@ def small_svd_via_eigh(B):
     Ub = eigvecs
 
     # Compute Vt: for each singular vector i, v_i^T = (1/s_i) * u_i^T B
-    tol = 1e-12
     kmax = min(l, n)
     S = s[:kmax].copy()
-    Vt_rows = []
 
-    for i in range(kmax):
-        si = S[i]
-        ui = Ub[:, i:i+1]
-        if si > tol:
-            vi_t = (ui.T @ B / si).reshape(-1)  # length  = n
-        else:
-            # singular is zero -> choose arbitrary orthonormal vector in nullspace
-            vi_t = np.zeros(n, dtype=B.dtype)
-        Vt_rows.append(vi_t)
-    Vt = np.stack(Vt_rows, axis=0)  # (kmax x n)
+    Vt = compute_Vt(Ub, S, B)
+
     return Ub[:, :kmax], S, Vt
 

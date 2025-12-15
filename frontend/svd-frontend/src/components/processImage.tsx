@@ -45,23 +45,28 @@ function ProcessImage(): JSX.Element {
             setHeight(rawSvds.height);
             setRank(rawSvds.height);
 
-            setR({
-                U: createSharedFloat32Array(rawSvds.red.U),
-                S: createSharedFloat32Array(rawSvds.red.S),
-                Vt: createSharedFloat32Array(rawSvds.red.Vt)
-            });
+            const [rData, gData, bData] = await Promise.all([
+                Promise.resolve({
+                    U: createSharedFloat32Array(rawSvds.red.U),
+                    S: createSharedFloat32Array(rawSvds.red.S),
+                    Vt: createSharedFloat32Array(rawSvds.red.Vt)
+                }),
+                Promise.resolve({
+                    U: createSharedFloat32Array(rawSvds.green.U),
+                    S: createSharedFloat32Array(rawSvds.green.S),
+                    Vt: createSharedFloat32Array(rawSvds.green.Vt)
+                }),
+                Promise.resolve({
+                    U: createSharedFloat32Array(rawSvds.blue.U),
+                    S: createSharedFloat32Array(rawSvds.blue.S),
+                    Vt: createSharedFloat32Array(rawSvds.blue.Vt)
+                })
+            ]);
 
-            setG({
-                U: createSharedFloat32Array(rawSvds.green.U),
-                S: createSharedFloat32Array(rawSvds.green.S),
-                Vt: createSharedFloat32Array(rawSvds.green.Vt)
-            });
+            setR(rData);
+            setG(gData);
+            setB(bData);
 
-            setB({
-                U: createSharedFloat32Array(rawSvds.blue.U),
-                S: createSharedFloat32Array(rawSvds.blue.S),
-                Vt: createSharedFloat32Array(rawSvds.blue.Vt)
-            });
 
         } catch (err) {
             console.error('Error processing image:', err);

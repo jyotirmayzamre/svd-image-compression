@@ -1,21 +1,15 @@
-from fastapi import APIRouter, UploadFile, File, Form
+from fastapi import APIRouter, UploadFile, File
 from pydantic import BaseModel
+from fastapi.responses import Response
 import numpy as np
 from svd.svd_core import randomized_svd
 from concurrent.futures import ThreadPoolExecutor
 import io
 from PIL import Image
 import math
+import orjson
 
 router = APIRouter()
-
-
-class SVDResult(BaseModel):
-    red: dict
-    green: dict
-    blue: dict
-    width: int
-    height: int
 
 
 def compute_channel_svd(channel_data: np.ndarray, channel_name: str) -> dict:
@@ -36,7 +30,7 @@ def scaleToCanvas(imgWidth, imgHeight, canvasWidth, canvasHeight):
 
 
 #Obtains image file, gets image data
-@router.post("/svd", response_model=SVDResult)
+@router.post("/svd")
 async def compute_svd_image(
     image: UploadFile = File(...)
 ):
@@ -64,22 +58,15 @@ async def compute_svd_image(
         green_result = future_green.result()
         blue_result = future_blue.result()
 
-    return {
-        'red': {
-            'U': red_result['U'],
-            'S': red_result['S'],
-            'Vt': red_result['Vt']
-        },
-        'green': {
-            'U': green_result['U'],
-            'S': green_result['S'],
-            'Vt': green_result['Vt']
-        },
-        'blue': {
-            'U': blue_result['U'],
-            'S': blue_result['S'],
-            'Vt': blue_result['Vt']
-        },
+    result = {
+        'red': red_result,
+        'green': green_result,
+        'blue': blue_result,
         'width': newWidth,
         'height': newHeight
     }
+    
+    return Response(
+        content=orjson.dumps(result),
+        media_type="application/json"
+    )
