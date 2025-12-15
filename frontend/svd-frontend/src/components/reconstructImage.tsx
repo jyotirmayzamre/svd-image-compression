@@ -83,7 +83,10 @@ function ReconstructImage(){
                 rank, width, height
             );
 
-            const ctx = canvasRef.current.getContext("2d")!;
+            const ctx = canvasRef.current.getContext("2d", {
+                alpha: false,
+                desynchronized: true
+            })!;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             const offCanvas = document.createElement("canvas");
