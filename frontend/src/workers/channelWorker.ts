@@ -1,4 +1,4 @@
-import init, { reconstruct_channel } from '../../../../svd_lib/pkg/svd_lib.js';
+import init, { reconstruct_channel } from '../../../svd_lib/pkg/svd_lib.js';
 
 let wasmInitialized = false;
 

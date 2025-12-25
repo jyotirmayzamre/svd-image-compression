@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useSvdStore, type Svd } from "../state/context";
-import init, { reconstruct } from "../../../../svd_lib/pkg/svd_lib.js";
+import init, { reconstruct } from "../../../svd_lib/pkg/svd_lib.js";
 
 
 let workersInitialized = false;
