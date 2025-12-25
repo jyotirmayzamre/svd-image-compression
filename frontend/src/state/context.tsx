@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useCallback, useMemo } from "react";
 import type { ReactNode } from "react";
 
 export interface Svd {
@@ -10,22 +10,22 @@ export interface Svd {
 
 interface ContextType {
     R: Svd | null;
-    setR: (r: Svd) => void;
+    setR: React.Dispatch<React.SetStateAction<Svd | null>>
 
     G: Svd | null;
-    setG: (g: Svd) => void;
+    setG: React.Dispatch<React.SetStateAction<Svd | null>>
 
     B: Svd | null;
-    setB: (b: Svd) => void;
+    setB: React.Dispatch<React.SetStateAction<Svd | null>>
 
     width: number;
-    setWidth: (w: number) => void;
+    setWidth: React.Dispatch<React.SetStateAction<number>>
 
     height: number;
-    setHeight: (h: number) => void;
+    setHeight: React.Dispatch<React.SetStateAction<number>>
 
     rank: number;
-    setRank: (r: number) => void;
+    setRank: React.Dispatch<React.SetStateAction<number>>
 
     resetAll: () => void;
 }
@@ -42,15 +42,17 @@ export const SvdProvider = ({ children }: { children: ReactNode }) => {
   const [height, setHeight] = useState<number>(0);
   const [rank, setRank] = useState<number>(0);
 
-  const resetAll = () => {
+  const resetAll = useCallback(() => {
     setR(null); setG(null); setB(null); setRank(1);
-  }
+  }, []);
+
+  const value = useMemo(() => ({
+    R, setR, G, setG, B, setB, width, setWidth, height, setHeight, rank, setRank, resetAll
+  }), [R, G, B, setR, setG, setB, height, rank, resetAll, width]);
 
 
   return (
-    <SvdContext.Provider
-    value={{R, setR, G, setG, B, setB, width, setWidth, height, setHeight, rank, setRank, resetAll}}
-    >
+    <SvdContext.Provider value={value}>
       {children}
     </SvdContext.Provider>
   )
