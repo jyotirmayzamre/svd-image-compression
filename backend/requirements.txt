@@ -1,3 +1,7 @@
 numpy
 fastapi
 uvicorn
+pillow
+orjson
+python-multipart
+pyinstrument

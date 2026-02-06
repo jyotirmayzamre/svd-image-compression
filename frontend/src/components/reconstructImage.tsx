@@ -1,25 +1,27 @@
 import { useEffect, useRef } from "react";
-import { useSvdStore, type Svd } from "../state/context";
+import { useSvdStore } from "../state/context";
 import init, { reconstruct } from "../../../svd_lib/pkg/svd_lib.js";
+import workers, { type Channel } from "../workers/global-workers.js";
 
 
-let workersInitialized = false;
-const workers: Record<string, Worker> = {};
+const channels: Channel[] = ['red', 'green', 'blue'];
 let wasmInitialized = false;
 
-//Reconstructs each channel's matrix using a web worker
-async function reconstructMatrixWithWorkers(svds: Record<string, Svd>, rank: number, width: number, height: number): Promise<ImageData>{
-    
-    const promises = (["red", "green", "blue"].map((channel) => {
+
+async function reconstructMatrix(width: number, height: number, rank: number): Promise<ImageData>{
+    const promises = (channels.map((channel) => {
         return new Promise<Float32Array>((resolve, reject) => {
             const worker = workers[channel];
 
             const onMessage = (e: MessageEvent) => {
-                const { reconstructed } = e.data;
-                worker.removeEventListener('message', onMessage);
-                worker.removeEventListener('error', onError);
-                resolve(reconstructed);
-            };
+                if (e.data.type === 'reconstructed' && e.data.channel == channel) {
+                    const { reconstructed } = e.data;
+                    worker.removeEventListener('message', onMessage);
+                    worker.removeEventListener('error', onError);
+                    resolve(reconstructed);
+                };
+            }
+                
 
             const onError = (e: ErrorEvent) => {
                 console.error(e);
@@ -32,17 +34,12 @@ async function reconstructMatrixWithWorkers(svds: Record<string, Svd>, rank: num
             worker.addEventListener('error', onError);
 
 
-            const U_buffer: SharedArrayBuffer = svds[channel].U;
-            const S_buffer: SharedArrayBuffer = svds[channel].S;
-            const Vt_buffer: SharedArrayBuffer = svds[channel].Vt;
-
-            worker.postMessage({ channel, U_buffer, S_buffer, Vt_buffer, width, height, rank});
+            worker.postMessage({ type: 'reconstruct', rank });
            
             }); 
     }));
     const results = await Promise.all(promises);
 
-    //reconstructs full colour image matrix
     const output: Float32Array = reconstruct(results[0], results[1], results[2], width, height);
 
     const rgba = new Uint8ClampedArray(output.length);
@@ -51,42 +48,35 @@ async function reconstructMatrixWithWorkers(svds: Record<string, Svd>, rank: num
     return new ImageData(rgba, width, height);  
 }
 
-async function initialize(){
-    if (!wasmInitialized) {
-            await init({module_or_path: "/svd_lib_bg.wasm"});
-            wasmInitialized = true;
-        }
-        
-    if (!workersInitialized) {
-        workers.red = new Worker(new URL("../workers/channelWorker.ts", import.meta.url), { type: "module" });
-        workers.green = new Worker(new URL("../workers/channelWorker.ts", import.meta.url), { type: "module" });
-        workers.blue = new Worker(new URL("../workers/channelWorker.ts", import.meta.url), { type: "module" });
-        workersInitialized = true;
+
+
+async function initializeWASM(){
+    if (!wasmInitialized){
+        await init({module_or_path: "/svd_lib_bg.wasm"});
+        wasmInitialized = true;
     }
 }
 
+
 function ReconstructImage(){
-    const { R, G, B, height, width, rank } = useSvdStore();
+    const { height, width, rank, dataReady } = useSvdStore();
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     
-    //obtains reconstructed image matrix and puts image data in canvas
     useEffect(() => {
-        initialize();
+        if (width === 0 || height === 0 || rank === 0 || !dataReady) return;
+        initializeWASM();
         async function wrapper(){
-
-            if(!R || !G || !B) return;
             if (!canvasRef.current) return;
+
+            const data: ImageData = await reconstructMatrix(width, height, rank);
             const canvas = canvasRef.current;
+            if(!canvas) return;
 
-            const data: ImageData = await reconstructMatrixWithWorkers(
-                {"red": R, "green": G, "blue": B},
-                rank, width, height
-            );
-
-            const ctx = canvasRef.current.getContext("2d", {
+            const ctx = canvas.getContext("2d", {
                 alpha: false,
                 desynchronized: true
             })!;
+
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             const offCanvas = document.createElement("canvas");
@@ -101,7 +91,7 @@ function ReconstructImage(){
             ctx.drawImage(offCanvas, offsetX, offsetY);
         }
         wrapper();
-    }, [R, G, B, width, height, rank])
+    }, [width, height, rank, dataReady])
 
 
     return (

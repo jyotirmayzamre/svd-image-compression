@@ -58,7 +58,7 @@ npm run dev
 
 ```bash
 cd svd_lib
-cargo build --release
+wasm-pack build --target web
 cp svd_lib/pkg/svd_lib_bg.wasm frontend/public/
 ```
 

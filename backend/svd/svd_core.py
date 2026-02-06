@@ -19,13 +19,6 @@ def randomized_svd(A, p=10, q=2, seed=None, dtype=np.float32):
     # orhhonormalize Y
     Q, _ = _qr_householder(Y)  # (m x l_reduced)
 
-    # power iterations
-    # for i in range(q):
-    #     Z = A_xp.T @ Q
-    #     Z, _ = _qr_householder(Z)
-    #     Y = A_xp @ Z
-    #     Q, _ = _qr_householder(Y)
-
     #test
     for i in range(q):
         Q = A_xp @ (A_xp.T @ Q)

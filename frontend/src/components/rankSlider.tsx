@@ -1,8 +1,8 @@
 import { useSvdStore } from "../state/context";
 
 export default function RankSlider() {
-  const { rank, R, setRank, height } = useSvdStore();
-  const maxRank = height;
+  const { rank, setRank, height, width } = useSvdStore();
+  const maxRank = Math.min(width, height);
 
   return (
     <div className="flex flex-col w-full max-w-[840px]">
@@ -10,9 +10,7 @@ export default function RankSlider() {
         type="range"
         min={1}
         max={maxRank}
-        //value={displayRank}
         value={rank}
-        disabled={!R}
         onChange={(e) => setRank(Number(e.target.value))}
         className={`
           w-full h-3 rounded-lg
@@ -20,7 +18,6 @@ export default function RankSlider() {
           appearance-none
           cursor-pointer
           transition-all duration-200
-          ${!R ? "opacity-50 pointer-events-none" : ""}
         `}
         style={{
           accentColor: "#3b82f6", 
