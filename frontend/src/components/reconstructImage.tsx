@@ -57,6 +57,32 @@ async function initializeWASM(){
     }
 }
 
+function computeMSE(a: ImageData, b: ImageData): number {
+    const d1 = a.data;
+    const d2 = b.data;
+
+    let sum = 0;
+    let count = 0;
+
+    for (let i = 0; i < d1.length; i += 4) {
+        for (let c = 0; c < 3; c++) {
+        const diff = d1[i + c] - d2[i + c];
+        sum += diff * diff;
+        count++;
+        }
+    }
+
+    return sum / count;    
+}
+
+function computePSNR(a: ImageData, b: ImageData){
+    const mse = computeMSE(a, b);
+    if(mse === 0) return Infinity
+
+    const MAX = 255;
+    return 20 * Math.log10(MAX) - 10 * Math.log10(mse);
+}
+
 type Props = {
   fullImageRef: React.RefObject<ImageData | null>;
 };
@@ -66,9 +92,12 @@ function ReconstructImage({ fullImageRef }: Props){
     const { height, width, rank, dataReady } = useSvdStore();
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const overlayRef = useRef<HTMLCanvasElement | null>(null);
+    const [psnr, setPsnr] = useState<number>(Infinity);
     const [hovered, setHovered] = useState<boolean>(false);
+    const [wipeX, setWipeX] = useState<number>(0);
 
-    const drawImage = useCallback((ref: React.RefObject<HTMLCanvasElement | null>, data: ImageData) => {
+    const drawImage = useCallback((ref: React.RefObject<HTMLCanvasElement | null>, 
+        data: ImageData, clipRatio?: number) => {
         const canvas = ref.current;
 
         if(!canvas) return;
@@ -85,8 +114,28 @@ function ReconstructImage({ fullImageRef }: Props){
         offCtx.putImageData(data, 0, 0);
         const offsetX = (canvas.width - width) / 2;
         const offsetY = (canvas.height - height) / 2;
+        ctx.save()
+
+        if(clipRatio){
+            const clipWidth = width * clipRatio;
+            ctx.beginPath();
+            ctx.rect(offsetX, offsetY, clipWidth, height);
+            ctx.clip();
+        }
         ctx.drawImage(offCanvas, offsetX, offsetY);
+        ctx.restore();
     }, [height, width]);
+
+
+    const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+        const canvas = overlayRef.current;
+        if(!canvas) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const ratio = Math.max(0, Math.min(1, x / canvas.width));
+        setWipeX(ratio);
+    }
 
 
     useEffect(() => {
@@ -94,11 +143,14 @@ function ReconstructImage({ fullImageRef }: Props){
         async function wrapper(){
             initializeWASM();
             const data: ImageData = await reconstructMatrix(width, height, rank);
+            
 
             //set full image SVD for overlay drawing
             if(!fullImageRef.current && rank == Math.min(width, height)){
                 fullImageRef.current = data;
             }
+
+            setPsnr(computePSNR(data, fullImageRef.current!))
 
             drawImage(canvasRef, data);
         }
@@ -108,16 +160,10 @@ function ReconstructImage({ fullImageRef }: Props){
 
     useEffect(() => {
         if(!hovered || !fullImageRef.current) return;
-        drawImage(overlayRef, fullImageRef.current);
-    }, [drawImage, hovered, fullImageRef])
+        drawImage(overlayRef, fullImageRef.current, wipeX);
+    }, [drawImage, hovered, fullImageRef, wipeX])
 
-    const clearOverlay = () => {
-        const canvas = overlayRef.current;
-        if(!canvas) return;
-        canvas.getContext('2d')!.clearRect(0, 0, canvas.width, canvas.height);
-    };
-
-
+  
     return (
         <div className="flex m-3 justify-center items-center p-5 w-[1000px] h-[400px]">
             <div className="relative w-[700px] h-[400px]">
@@ -126,8 +172,9 @@ function ReconstructImage({ fullImageRef }: Props){
                     onMouseEnter={() => setHovered(true)}
                     onMouseLeave={() => {
                         setHovered(false);
-                        clearOverlay();
+                        setWipeX(0);
                     }}
+                    onMouseMove={handleMouseMove}
                 />
                 <canvas ref={canvasRef} width={700} height={400}
                     className="absolute inset-0 border border-gray-300  shadow-md bg-black z-10"
@@ -140,7 +187,9 @@ function ReconstructImage({ fullImageRef }: Props){
                 <p><span className="font-light text-gray-600 text-sm">Compression Ratio: </span>
                 {rank ? ((width * height) / (rank*(width + height + 1))).toFixed(2) : 0}</p>
                 <p><span className="font-light text-gray-600 text-sm">#Singular Values: </span>{rank}</p>
-                <p><span className="font-light text-gray-600 text-sm">hover for the original picture</span></p>
+                <p><span className="font-light text-gray-600 text-sm">PSNR: </span>{psnr.toFixed(2)} dB</p>
+
+                <p><span className="font-light text-gray-600 text-sm">hover across for comparison</span></p>
 
             </div>
         </div>

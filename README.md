@@ -8,7 +8,7 @@ This project implements image compression using Singular Value Decomposition. By
 
 ## Project Structure
 
-- **Frontend**: TypeScript-based web interface for image upload and visualization
+- **Frontend**: TypeScript & React web interface using Web Workers and Web Assembly (zero-copy buffers)
 - **Backend**: FastAPI server handling image uploads and multithreaded SVD (for colour channels)
 - **SVD Library**: Rust-based core library providing functions for matrix reconstruction from SVD
 
@@ -43,7 +43,7 @@ For color images, the algorithm processes each RGB channel independently, applyi
 ```bash
 cd backend
 pip install -r requirements.txt
-uvicorn main:app --workers 3
+uvicorn main:app
 ```
 
 ### Frontend Setup
