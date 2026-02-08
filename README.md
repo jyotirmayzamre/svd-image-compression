@@ -72,6 +72,4 @@ cp svd_lib/pkg/svd_lib_bg.wasm frontend/public/
 ## To-Do
 
 - Rewrite core SVD utils to use a more efficient algorithm
-- Clean up frontend code
 - Add features like view against original, more metrics like Frobenius error, etc
-- Maybe migrate SVD utils completely to web assembly?
