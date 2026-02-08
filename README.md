@@ -1,6 +1,6 @@
 # SVD Image Compression
 
-A web-based application for compressing images using Singular Value Decomposition (SVD) with a modern frontend interface (using Web Assembly and web workers) and high-performance backend processing. This project was done by me and Anurav Singh for the course Numerical Algorithms and Optimization.
+A web-based application for compressing images using Singular Value Decomposition (SVD) with a modern frontend interface (using Web Assembly and web workers) and high-performance backend processing. This project was done for the course Numerical Algorithms and Optimization.
 
 ## Overview
 
