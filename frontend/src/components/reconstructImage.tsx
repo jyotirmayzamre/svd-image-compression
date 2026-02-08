@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useSvdStore } from "../state/context";
 import init, { reconstruct } from "../../../svd_lib/pkg/svd_lib.js";
 import workers, { type Channel } from "../workers/global-workers.js";
@@ -57,54 +57,90 @@ async function initializeWASM(){
     }
 }
 
+type Props = {
+  fullImageRef: React.RefObject<ImageData | null>;
+};
 
-function ReconstructImage(){
+
+function ReconstructImage({ fullImageRef }: Props){
     const { height, width, rank, dataReady } = useSvdStore();
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
-    
+    const overlayRef = useRef<HTMLCanvasElement | null>(null);
+    const [hovered, setHovered] = useState<boolean>(false);
+
+    const drawImage = useCallback((ref: React.RefObject<HTMLCanvasElement | null>, data: ImageData) => {
+        const canvas = ref.current;
+
+        if(!canvas) return;
+        const ctx = canvas.getContext("2d")!;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const offCanvas = document.createElement("canvas");
+        offCanvas.width = width;
+        offCanvas.height = height;
+        const offCtx = offCanvas.getContext("2d");
+        if (!offCtx) return;
+
+        offCtx.putImageData(data, 0, 0);
+        const offsetX = (canvas.width - width) / 2;
+        const offsetY = (canvas.height - height) / 2;
+        ctx.drawImage(offCanvas, offsetX, offsetY);
+    }, [height, width]);
+
+
     useEffect(() => {
         if (width === 0 || height === 0 || rank === 0 || !dataReady) return;
-        initializeWASM();
         async function wrapper(){
-            if (!canvasRef.current) return;
-
+            initializeWASM();
             const data: ImageData = await reconstructMatrix(width, height, rank);
-            const canvas = canvasRef.current;
-            if(!canvas) return;
 
-            const ctx = canvas.getContext("2d", {
-                alpha: false,
-                desynchronized: true
-            })!;
+            //set full image SVD for overlay drawing
+            if(!fullImageRef.current && rank == Math.min(width, height)){
+                fullImageRef.current = data;
+            }
 
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            const offCanvas = document.createElement("canvas");
-            offCanvas.width = width;
-            offCanvas.height = height;
-            const offCtx = offCanvas.getContext("2d");
-            if (!offCtx) return;
-
-            offCtx.putImageData(data, 0, 0);
-            const offsetX = (canvas.width - width) / 2;
-            const offsetY = (canvas.height - height) / 2;
-            ctx.drawImage(offCanvas, offsetX, offsetY);
+            drawImage(canvasRef, data);
         }
-        wrapper();
-    }, [width, height, rank, dataReady])
+        wrapper() 
+    }, [width, height, rank, dataReady, drawImage, fullImageRef])
+
+
+    useEffect(() => {
+        if(!hovered || !fullImageRef.current) return;
+        drawImage(overlayRef, fullImageRef.current);
+    }, [drawImage, hovered, fullImageRef])
+
+    const clearOverlay = () => {
+        const canvas = overlayRef.current;
+        if(!canvas) return;
+        canvas.getContext('2d')!.clearRect(0, 0, canvas.width, canvas.height);
+    };
 
 
     return (
         <div className="flex m-3 justify-center items-center p-5 w-[1000px] h-[400px]">
-            <canvas ref={canvasRef} width={700} height={400}
-            className="border border-gray-300  shadow-md bg-black"
-            />
+            <div className="relative w-[700px] h-[400px]">
+                <canvas ref={overlayRef} width={700} height={400} 
+                    className="absolute inset-0 border border-gray-300 shadow-md z-20"
+                    onMouseEnter={() => setHovered(true)}
+                    onMouseLeave={() => {
+                        setHovered(false);
+                        clearOverlay();
+                    }}
+                />
+                <canvas ref={canvasRef} width={700} height={400}
+                    className="absolute inset-0 border border-gray-300  shadow-md bg-black z-10"
+                />
+            </div>
+            
             <div className="w-[300px] bg-[rgb(238,238,238)] h-[350px] shadow-md p-2 font-[Lucida] flex flex-col justify-center items-center gap-4">
                 <p><span className="font-light text-gray-600 text-sm">Image Size: </span>{width} x {height}</p>
                 <p><span className="font-light text-gray-600 text-sm">Total Pixels: </span>{width * height}</p>
                 <p><span className="font-light text-gray-600 text-sm">Compression Ratio: </span>
                 {rank ? ((width * height) / (rank*(width + height + 1))).toFixed(2) : 0}</p>
                 <p><span className="font-light text-gray-600 text-sm">#Singular Values: </span>{rank}</p>
+                <p><span className="font-light text-gray-600 text-sm">hover for the original picture</span></p>
 
             </div>
         </div>

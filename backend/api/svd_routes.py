@@ -2,13 +2,13 @@ from fastapi import APIRouter, UploadFile, File
 from fastapi.responses import Response
 import numpy as np
 from svd.svd_core import randomized_svd
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 import io
 from PIL import Image
 import asyncio
 
 router = APIRouter()
-executor = ProcessPoolExecutor(max_workers=3)
+executor = ThreadPoolExecutor(max_workers=3)
 
 
 def compute_channel_svd(channel_data: np.ndarray, channel_name: str) -> dict:
@@ -22,8 +22,6 @@ def compute_channel_svd(channel_data: np.ndarray, channel_name: str) -> dict:
 
 
 
-
-#Obtains image file, gets image data
 @router.post("/svd")
 async def compute_svd_image(
     image: UploadFile = File(...)

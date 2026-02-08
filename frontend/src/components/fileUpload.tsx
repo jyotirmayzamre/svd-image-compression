@@ -3,7 +3,7 @@ import sendErrorNotif from "../utils";
 import workers, { type Channel } from "../workers/global-workers";
 import { useSvdStore } from "../state/context";
 
-const ALLOWED_TYPES = ['image/png', 'image/jpeg'];
+const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/web'];
 
 function isFileOfCorrectType(file: File): boolean {
     return ALLOWED_TYPES.includes(file.type);
@@ -188,8 +188,7 @@ async function getSVD(file: File): Promise<ArrayBuffer>{
 }
 
 
-
-function FileUpload(): JSX.Element {
+function FileUpload({ onResetFullImage }: { onResetFullImage: () => void }): JSX.Element {
 
     const { setHeight, setWidth, setRank, setDataReady } = useSvdStore();
 
@@ -197,13 +196,13 @@ function FileUpload(): JSX.Element {
         const file = e.target.files?.[0];
         if(!file) return;
 
-
         if(!isFileOfCorrectType(file)){
             sendErrorNotif('Wrong file type');
             return
         }
 
         try {
+            onResetFullImage();
             setDataReady(false);
             const [width, height] = await getScaledDim(file);
             setWidth(width);

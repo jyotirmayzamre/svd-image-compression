@@ -10,6 +10,7 @@ export default function RankSlider() {
         type="range"
         min={1}
         max={maxRank}
+        step={5}
         value={rank}
         onChange={(e) => setRank(Number(e.target.value))}
         className={`
