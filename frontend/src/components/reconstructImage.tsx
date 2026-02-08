@@ -115,15 +115,24 @@ function ReconstructImage({ fullImageRef }: Props){
         const offsetX = (canvas.width - width) / 2;
         const offsetY = (canvas.height - height) / 2;
         ctx.save()
-
+        
+        let clipWidth = width;
         if(clipRatio){
-            const clipWidth = width * clipRatio;
+            clipWidth = width * clipRatio;
             ctx.beginPath();
             ctx.rect(offsetX, offsetY, clipWidth, height);
             ctx.clip();
         }
         ctx.drawImage(offCanvas, offsetX, offsetY);
         ctx.restore();
+
+        const lineX = offsetX + clipWidth;
+        ctx.beginPath();
+        ctx.strokeStyle = 'rgba(0,0,0,0.8)'; 
+        ctx.lineWidth = 2;
+        ctx.moveTo(lineX, offsetY);
+        ctx.lineTo(lineX, offsetY + height);
+        ctx.stroke();
     }, [height, width]);
 
 
@@ -186,9 +195,9 @@ function ReconstructImage({ fullImageRef }: Props){
                 <p><span className="font-light text-gray-600 text-sm">Total Pixels: </span>{width * height}</p>
                 <p><span className="font-light text-gray-600 text-sm">Compression Ratio: </span>
                 {rank ? ((width * height) / (rank*(width + height + 1))).toFixed(2) : 0}</p>
-                <p><span className="font-light text-gray-600 text-sm">#Singular Values: </span>{rank}</p>
                 <p><span className="font-light text-gray-600 text-sm">PSNR: </span>{psnr.toFixed(2)} dB</p>
-
+                <p><span className="font-light text-gray-600 text-sm">#Singular Values: </span>{rank}</p>
+                
                 <p><span className="font-light text-gray-600 text-sm">hover across for comparison</span></p>
 
             </div>
