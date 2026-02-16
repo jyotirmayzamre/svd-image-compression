@@ -14,7 +14,7 @@
     "nouislider": "^15.8.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "svd_lib": "file:../../svd_lib/pkg",
+    "svd_lib": "file:../svd_lib/pkg",
     "sweetalert2": "^11.26.18"
   },
   "devDependencies": {

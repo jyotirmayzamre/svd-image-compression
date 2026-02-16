@@ -174,7 +174,7 @@ async function getSVD(file: File): Promise<ArrayBuffer>{
     const formData = new FormData();
     formData.append('image', file);
 
-    const response = await fetch('http://localhost:8000/api/svd', {
+    const response = await fetch('http://127.0.0.1:8000/api/svd', {
         method: 'POST',
         body: formData
     });

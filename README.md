@@ -34,37 +34,18 @@ For color images, the algorithm processes each RGB channel independently, applyi
 
 ### Prerequisites
 
-- Python 3.8+
-- Node.js 16+
-- Rust 1.70+
+- Docker
+- Docker Compose
 
-### Backend Setup
-
-```bash
-cd backend
-pip install -r requirements.txt
-uvicorn main:app
-```
-
-### Frontend Setup
+### How to run (from the project root)
 
 ```bash
-cd frontend
-npm install
-npm run dev
-```
-
-### SVD Library Build
-
-```bash
-cd svd_lib
-wasm-pack build --target web
-cp svd_lib/pkg/svd_lib_bg.wasm frontend/public/
+docker compose up -d --build 
 ```
 
 ## Usage
 
-1. Access the web interface at `http://localhost:5173`
+1. Access the web interface at `http://localhost:80`
 2. Upload an image using the file selector
 3. Adjust the compression level using the rank slider
 4. View the compressed result and compression statistics

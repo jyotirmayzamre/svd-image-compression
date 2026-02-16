@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useSvdStore } from "../state/context";
-import init, { reconstruct } from "../../../svd_lib/pkg/svd_lib.js";
+import { reconstruct } from "../../../svd_lib/pkg/svd_lib.js";
 import workers, { type Channel } from "../workers/global-workers.js";
 
 
 const channels: Channel[] = ['red', 'green', 'blue'];
-let wasmInitialized = false;
 
 
 async function reconstructMatrix(width: number, height: number, rank: number): Promise<ImageData>{
@@ -49,13 +48,6 @@ async function reconstructMatrix(width: number, height: number, rank: number): P
 }
 
 
-
-async function initializeWASM(){
-    if (!wasmInitialized){
-        await init({module_or_path: "/svd_lib_bg.wasm"});
-        wasmInitialized = true;
-    }
-}
 
 function computeMSE(a: ImageData, b: ImageData): number {
     const d1 = a.data;
@@ -149,11 +141,10 @@ function ReconstructImage({ fullImageRef }: Props){
 
     useEffect(() => {
         if (width === 0 || height === 0 || rank === 0 || !dataReady) return;
+
         async function wrapper(){
-            initializeWASM();
             const data: ImageData = await reconstructMatrix(width, height, rank);
             
-
             //set full image SVD for overlay drawing
             if(!fullImageRef.current && rank == Math.min(width, height)){
                 fullImageRef.current = data;
@@ -163,6 +154,7 @@ function ReconstructImage({ fullImageRef }: Props){
 
             drawImage(canvasRef, data);
         }
+
         wrapper() 
     }, [width, height, rank, dataReady, drawImage, fullImageRef])
 

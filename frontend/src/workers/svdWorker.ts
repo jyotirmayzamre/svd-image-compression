@@ -1,9 +1,7 @@
 /// <reference lib="webworker" />
 
 
-import init, { reconstruct_channel } from '../../../svd_lib/pkg/svd_lib.js';
-
-let wasmInitialized = false;
+import { reconstruct_channel } from 'svd_lib';
 
 let storedSVD: {
     channel: string,
@@ -16,11 +14,6 @@ let storedSVD: {
 
 
 self.onmessage = async(event: MessageEvent) => {
-    if (!wasmInitialized){
-        await init({module_or_path: "/svd_lib_bg.wasm"});
-        wasmInitialized = true;
-    }
-
     const { type } = event.data;
 
     if(type == 'upload'){
